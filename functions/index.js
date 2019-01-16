@@ -27,81 +27,79 @@ var db = admin.firestore();
 
 
 exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, response) => {
-  const agent = new WebhookClient({ request, response });
-  console.log("dialogflowFirebaseFulfillment: Body: " + JSON.stringify(request.body));
+    const agent = new WebhookClient({ request, response });
+    console.log("dialogflowFirebaseFulfillment: Body: " + JSON.stringify(request.body));
 
-  function writeToBq (es) {
-    let datasetName = "hfn_event_bot";
-    let tableName = "event_summary";
-    let bq = new BigQuery();
-    
-    let dataset = bq.dataset(datasetName);
-    dataset.exists().catch(err => {
-        console.error(
-            `dataset.exists: dataset ${datasetName} does not exist: ${JSON.stringify(err)}`
-        );
-      return err;
-    });
-    
-    let table = dataset.table(tableName);
-     table.exists().catch(err => {
-      console.error(
-        `table.exists: table ${tableName} does not exist: ${JSON.stringify(err)}`
-      );
-      return err;
-    });
-    
-    var esBody = {
-      	"ignoreUnknowValues": true,
-		"json": es,
-      	"skipInvalidRows": true
-    };
-    
-    return table.insert(esBody, {raw: true}).catch(err => {
-        console.error(`table.insert: ${JSON.stringify(err)}`);
-        return err;
-    });
-  }
-  
-  function writeToDb (agent) {
-    // Get parameter from Dialogflow with the string to add to the database
-    let type = agent.parameters['event_type'];
-    let count = agent.parameters['event_count'];
-    let name = agent.parameters['coordinator_name'];
-    let isoDate = agent.parameters['event_date'];
-    let institution = agent.parameters['event_institution'];
-    let city = agent.parameters['event_city'];
-    let feedback = agent.parameters['event_feedback'];
-   	
-    // converting ISO date to `date`
-    let date = isoDate.split("T")[0];
-    
-    let eventSummary = {
-      "name": name,
-      "type": type,
-      "count": count,
-      "date": date,
-      "institution": institution,
-      "city": city,
-      "feedback": feedback
-    }    
-    // const databaseEntry = agent.parameters.databaseEntry;
-    const databaseEntry = agent.parameters;
-    const dialogflowAgentRef = db.collection('event-summary').doc();
-    return db.runTransaction(t => {
-      t.set(dialogflowAgentRef, {entry: databaseEntry});
-      writeToBq(eventSummary);
-      return Promise.resolve('Write complete');
-    }).then(doc => {
-      agent.add(`Thanks for submitting the information and all the best. Please submit the complete feedback with attendee information (if available, for *public* events) at our Events Portal: events.heartfulness.org`);
-    }).catch(err => {
-      console.error(`error writing to Firestore: ${err}`);
-      agent.add(`Sorry, There was an error. Please try again later!!`);
-    });
-  }
+    function writeToBq (es) {
+        let datasetName = "hfn_event_bot";
+        let tableName = "event_summary";
+        let bq = new BigQuery();
 
-  // Run the proper function handler based on the matched Dialogflow intent name
-  let intents = new Map();
-  intents.set('event.info', writeToDb);
-  agent.handleRequest(intents);
+        let dataset = bq.dataset(datasetName);
+        dataset.exists().catch(err => {
+            console.error(
+                `dataset.exists: dataset ${datasetName} does not exist: ${JSON.stringify(err)}`
+            );
+            return err;
+        });
+
+        let table = dataset.table(tableName);
+        table.exists().catch(err => {
+            console.error(
+                `table.exists: table ${tableName} does not exist: ${JSON.stringify(err)}`
+            );
+            return err;
+        });
+
+        var esBody = {
+            "ignoreUnknowValues": true,
+            "json": es,
+            "skipInvalidRows": true
+        };
+
+        return table.insert(esBody, {raw: true}).catch(err => {
+            console.error(`table.insert: ${JSON.stringify(err)}`);
+            return err;
+        });
+    }
+
+    function writeToDb (agent) {
+        // Get parameter from Dialogflow with the string to add to the database
+        let type = agent.parameters['event_type'];
+        let count = agent.parameters['event_count'];
+        let name = agent.parameters['coordinator_name'];
+        let isoDate = agent.parameters['event_date'];
+        let institution = agent.parameters['event_institution'];
+        let city = agent.parameters['event_city'];
+        let feedback = agent.parameters['event_feedback'];
+        // converting ISO date to `date`
+        let date = isoDate.split("T")[0];
+        let eventSummary = {
+            "name": name,
+            "type": type,
+            "count": count,
+            "date": date,
+            "institution": institution,
+            "city": city,
+            "feedback": feedback
+        }
+        // const databaseEntry = agent.parameters.databaseEntry;
+        const databaseEntry = agent.parameters;
+        const dialogflowAgentRef = db.collection('event-summary').doc();
+        return db.runTransaction(t => {
+            t.set(dialogflowAgentRef, {entry: databaseEntry});
+            writeToBq(eventSummary);
+            return Promise.resolve('Write complete');
+        }).then(doc => {
+            agent.add(`Thanks for submitting the information and all the best. Please submit the complete feedback with attendee information (if available, for *public* events) at our Events Portal: events.heartfulness.org`);
+        }).catch(err => {
+            console.log(`Error writing to Firestore: ${err}`);
+            agent.add(`Failed to write "${databaseEntry}" to the Firestore database.`);
+        });
+    }
+
+    // Run the proper function handler based on the matched Dialogflow intent name
+    let intents = new Map();
+    intents.set('event.info', writeToDb);
+    agent.handleRequest(intents);
 });
