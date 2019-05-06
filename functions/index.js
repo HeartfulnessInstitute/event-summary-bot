@@ -20,6 +20,8 @@ const admin = require('firebase-admin');
 const functions = require('firebase-functions');
 const {WebhookClient} = require('dialogflow-fulfillment');
 const {BigQuery} = require("@google-cloud/bigquery");
+const Fuse = require("fuse.js");
+const Cities = require("indian-cities-json");
 
 process.env.DEBUG = 'dialogflow:*'; // enables lib debugging statements
 admin.initializeApp(functions.config().firebase);
@@ -63,19 +65,47 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
         });
     }
 
-    function writeToDb (agent) {
-        // Get parameter from Dialogflow with the string to add to the database
+    function findCity (city) {
+		let options = {
+			keys: ["name"]
+		}
+		let fuse = new Fuse(Cities.cities, options);
+		let result = fuse.search(city);
+		return result[0]["name"];
+    }
+
+    function askForConfirmation(agent) {
         let type = agent.parameters['event_type'];
         let count = agent.parameters['event_count'];
         let name = agent.parameters['coordinator_name'];
+        let phone = agent.parameters['coordinator_phone'];
         let isoDate = agent.parameters['event_date'];
         let institution = agent.parameters['event_institution'];
-        let city = agent.parameters['event_city'];
+        let city = findCity(agent.parameters['event_city']);
         let feedback = agent.parameters['event_feedback'];
+        // converting ISO date to `date`
+        let date = isoDate.split("T")[0];  
+        agent.add(`Okay, ${count} attended ${type} on ${date} at ${institution} in ${city}, as reported by the awesome coordinator ${name} who can be reached at ${phone}.\n Did I get that right?`);
+        return;
+
+    }
+  
+    function writeToDb (agent) {
+        // Get parameter from Dialogflow with the string to add to the database
+        const context = agent.getContext('eventinfo-followup');
+        let type = context.parameters['event_type'];
+        let count = context.parameters['event_count'];
+        let name = context.parameters['coordinator_name'];
+        let phone = context.parameters['coordinator_phone'];
+        let isoDate = context.parameters['event_date'];
+        let institution = context.parameters['event_institution'];
+        let city = findCity(context.parameters['event_city']);
+        let feedback = context.parameters['event_feedback'];
         // converting ISO date to `date`
         let date = isoDate.split("T")[0];
         let eventSummary = {
             "name": name,
+          	"phone": phone,
             "type": type,
             "count": count,
             "date": date,
@@ -83,8 +113,10 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
             "city": city,
             "feedback": feedback
         }
+        // console.log("===> " + eventSummary["name"], eventSummary["type"], eventSummary["count"]);
         // const databaseEntry = agent.parameters.databaseEntry;
-        const databaseEntry = agent.parameters;
+        // const databaseEntry = context.parameters;
+        const databaseEntry = eventSummary
         const dialogflowAgentRef = db.collection('event-summary').doc();
         return db.runTransaction(t => {
             t.set(dialogflowAgentRef, {entry: databaseEntry});
@@ -100,6 +132,7 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
 
     // Run the proper function handler based on the matched Dialogflow intent name
     let intents = new Map();
-    intents.set('event.info', writeToDb);
+    intents.set('event.info', askForConfirmation);
+    intents.set('event.info.yes', writeToDb);
     agent.handleRequest(intents);
 });
