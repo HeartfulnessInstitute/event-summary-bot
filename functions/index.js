@@ -21,7 +21,8 @@ const functions = require('firebase-functions');
 const {WebhookClient} = require('dialogflow-fulfillment');
 const {BigQuery} = require("@google-cloud/bigquery");
 const Fuse = require("fuse.js");
-const Cities = require("indian-cities-json");
+const Cities = require("hfn-centers");
+//const Cities = require("indian-cities-json");
 
 process.env.DEBUG = 'dialogflow:*'; // enables lib debugging statements
 admin.initializeApp(functions.config().firebase);
@@ -71,7 +72,8 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
 		}
 		let fuse = new Fuse(Cities.cities, options);
 		let result = fuse.search(city);
-		return result[0]["name"];
+		//return result[0]["name"];
+		return Cities.cities[result[0]];
     }
 
     function askForConfirmation(agent) {
@@ -113,9 +115,6 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
             "city": city,
             "feedback": feedback
         }
-        // console.log("===> " + eventSummary["name"], eventSummary["type"], eventSummary["count"]);
-        // const databaseEntry = agent.parameters.databaseEntry;
-        // const databaseEntry = context.parameters;
         const databaseEntry = eventSummary
         const dialogflowAgentRef = db.collection('event-summary').doc();
         return db.runTransaction(t => {
