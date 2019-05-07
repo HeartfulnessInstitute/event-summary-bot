@@ -22,7 +22,6 @@ const {WebhookClient} = require('dialogflow-fulfillment');
 const {BigQuery} = require("@google-cloud/bigquery");
 const Fuse = require("fuse.js");
 const Cities = require("hfn-centers");
-//const Cities = require("indian-cities-json");
 
 process.env.DEBUG = 'dialogflow:*'; // enables lib debugging statements
 admin.initializeApp(functions.config().firebase);
@@ -72,22 +71,48 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
 		}
 		let fuse = new Fuse(Cities.cities, options);
 		let result = fuse.search(city);
-		//return result[0]["name"];
-		return Cities.cities[result[0]];
+        let centerName = Cities.cities[result[0]];
+        switch(centerName) {
+          case "BANGALORE":
+            centerName = "BENGALURU";
+            break;
+          case "MADRAS":
+            centerName = "CHENNAI";
+            break;
+          case "BOMBAY":
+            centerName = "MUMBAI";
+            break;
+          case "DELHI":
+            centerName = "NEW DELHI";
+            break;
+        }
+        return centerName;
     }
 
+    function cleanDate(isoDateString) {
+      // Sometimes Dialogflow sets the year to 2020. Force year to be current year if in the future.
+      let d = new Date();
+      let currentYear = d.getFullYear();  	
+      let isoDate = new Date(isoDateString);
+      if (isoDate.getFullYear() > currentYear) {
+       	isoDate.setFullYear(currentYear);
+      }
+      // Extract only the date in yyyy-mm-dd format
+      let dateOnly = isoDate.toISOString().split("T")[0];
+      return(dateOnly);
+    }
+  
     function askForConfirmation(agent) {
         let type = agent.parameters['event_type'];
         let count = agent.parameters['event_count'];
         let name = agent.parameters['coordinator_name'];
         let phone = agent.parameters['coordinator_phone'];
-        let isoDate = agent.parameters['event_date'];
+        let isoDateString = agent.parameters['event_date'];
         let institution = agent.parameters['event_institution'];
         let city = findCity(agent.parameters['event_city']);
         let feedback = agent.parameters['event_feedback'];
-        // converting ISO date to `date`
-        let date = isoDate.split("T")[0];  
-        agent.add(`Okay, ${count} attended ${type} on ${date} at ${institution} in ${city}, as reported by the awesome coordinator ${name} who can be reached at ${phone}.\n Did I get that right?`);
+        let date = cleanDate(isoDateString);
+        agent.add(`Okay, ${count} attended ${type} on ${date} at ${institution} in ${city}, as reported by the awesome coordinator ${name} who can be reached at ${phone}.\nDid I get that right?`);
         return;
 
     }
@@ -99,12 +124,11 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
         let count = context.parameters['event_count'];
         let name = context.parameters['coordinator_name'];
         let phone = context.parameters['coordinator_phone'];
-        let isoDate = context.parameters['event_date'];
+        let isoDateString = context.parameters['event_date'];
         let institution = context.parameters['event_institution'];
         let city = findCity(context.parameters['event_city']);
         let feedback = context.parameters['event_feedback'];
-        // converting ISO date to `date`
-        let date = isoDate.split("T")[0];
+        let date = cleanDate(isoDateString);
         let eventSummary = {
             "name": name,
           	"phone": phone,
@@ -122,7 +146,7 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
             writeToBq(eventSummary);
             return Promise.resolve('Write complete');
         }).then(doc => {
-            agent.add(`Thanks for submitting the information and all the best. Please submit the complete feedback with attendee information (if available, for *public* events) at our Events Portal: events.heartfulness.org`);
+            agent.add(`Thanks for submitting the information and all the best.\n Please submit the complete feedback with attendee information (if available, for *public* events) at our Events Portal: events.heartfulness.org.\n For support questions please email itsupport@heartfulness.org`);
         }).catch(err => {
             console.log(`Error writing to Firestore: ${err}`);
             agent.add(`Failed to write "${databaseEntry}" to the Firestore database.`);
