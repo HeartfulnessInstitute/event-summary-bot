@@ -20,7 +20,7 @@
     "firebase-functions": "^2.0.2",
     "@google-cloud/bigquery": "^2.0.6",
     "fuse.js": "^3.3.0",
-	  "hfn-centers": "^1.0.3"
+    "hfn-centers": "^1.0.3"
   }
 }
 
