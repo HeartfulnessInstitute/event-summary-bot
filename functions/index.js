@@ -108,6 +108,7 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
   
     function askForConfirmation(agent) {
         let type = agent.parameters['event_type'];
+        let event_day = agent.parameters['event_day'];
         let count = agent.parameters['event_count'];
         let name = agent.parameters['coordinator_name'];
         let phone = agent.parameters['coordinator_phone'];
@@ -125,6 +126,7 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
         // Get parameter from Dialogflow with the string to add to the database
         const context = agent.getContext('eventinfo-followup');
         let type = context.parameters['event_type'];
+        let event_day = context.parameters['event_day'];
         let count = context.parameters['event_count'];
         let name = context.parameters['coordinator_name'];
         let phone = context.parameters['coordinator_phone'];
@@ -137,6 +139,7 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
             "name": name,
           	"phone": phone,
             "type": type,
+            "event_day": event_day,
             "count": count,
             "date": date,
             "institution": institution,
