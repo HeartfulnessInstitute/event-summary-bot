@@ -97,6 +97,10 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
       if (isoDate.getFullYear() > currentYear) {
        	isoDate.setFullYear(currentYear);
       }
+      // If the date is still in the future, set it to today
+      if (isoDate > d) {
+        isoDate = d;
+      }
       // Extract only the date in yyyy-mm-dd format
       let dateOnly = isoDate.toISOString().split("T")[0];
       return(dateOnly);
@@ -112,7 +116,7 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
         let city = findCity(agent.parameters['event_city']);
         let feedback = agent.parameters['event_feedback'];
         let date = cleanDate(isoDateString);
-        agent.add(`Okay, ${count} attended ${type} on ${date} at ${institution} in ${city}, as reported by the awesome coordinator ${name} who can be reached at ${phone}.\nDid I get that right?`);
+        agent.add(`Okay, ${count} attended ${type} on ${date} at ${institution} in ${city}, as reported by the awesome coordinator ${name} who can be reached at ${phone}.\n\nDid I get that right?`);
         return;
 
     }
@@ -146,7 +150,7 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
             writeToBq(eventSummary);
             return Promise.resolve('Write complete');
         }).then(doc => {
-            agent.add(`Thanks for submitting the information and all the best.\n Please submit the complete feedback with attendee information (if available, for *public* events) at our Events Portal: events.heartfulness.org.\n For support questions please email itsupport@heartfulness.org`);
+            agent.add(`Thanks for submitting the information and all the best.\n\nPlease submit the complete feedback with attendee information (if available, for *public* events) at our Events Portal: events.heartfulness.org.\n\nFor support questions please email itsupport@heartfulness.org`);
         }).catch(err => {
             console.log(`Error writing to Firestore: ${err}`);
             agent.add(`Failed to write "${databaseEntry}" to the Firestore database.`);
