@@ -156,7 +156,7 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
             agent.add(`Thanks for submitting the information and all the best.\n\nPlease submit the complete feedback with attendee information (if available, for *public* events) at our Events Portal: events.heartfulness.org.\n\nFor support questions please email itsupport@heartfulness.org`);
         }).catch(err => {
             console.log(`Error writing to Firestore: ${err}`);
-            agent.add(`Failed to write "${databaseEntry}" to the Firestore database.`);
+            agent.add(`Looks like we had some problem capturing this information. This could be due to some internal error. Can you please email itsupport@heartfulness.org with the screenshot? Thanks and apologies for the inconvenience.`);
         });
     }
 
