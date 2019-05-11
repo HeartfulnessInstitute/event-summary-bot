@@ -73,7 +73,7 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
 		let fuse = new Fuse(Cities.cities, options);
 		let result = fuse.search(city);
 		//return result[0]["name"];
-		return Cities.cities[result[0]];
+		return [Cities.cities[result[0]], Cities.zones[result[0]], Cities.countries[result[0]]];
     }
 
     function askForConfirmation(agent) {
@@ -83,7 +83,10 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
         let phone = agent.parameters['coordinator_phone'];
         let isoDate = agent.parameters['event_date'];
         let institution = agent.parameters['event_institution'];
-        let city = findCity(agent.parameters['event_city']);
+        let location_info = findCity(agent.parameters['event_city']);
+        let city = location_info[0]
+        let zone = location_info[1]
+        let country = location_info[2]
         let feedback = agent.parameters['event_feedback'];
         // converting ISO date to `date`
         let date = isoDate.split("T")[0];  
@@ -101,7 +104,11 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
         let phone = context.parameters['coordinator_phone'];
         let isoDate = context.parameters['event_date'];
         let institution = context.parameters['event_institution'];
-        let city = findCity(context.parameters['event_city']);
+        let location_info = findCity(context.parameters['event_city']);
+        let city = location_info[0]
+        let zone = location_info[1]
+        let country = location_info[2]
+        let feedback = agent.parameters['event_feedback'];
         let feedback = context.parameters['event_feedback'];
         // converting ISO date to `date`
         let date = isoDate.split("T")[0];
@@ -113,6 +120,8 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
             "date": date,
             "institution": institution,
             "city": city,
+            "zone": zone,
+            "country": country
             "feedback": feedback
         }
         const databaseEntry = eventSummary
