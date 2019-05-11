@@ -84,9 +84,9 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
         let isoDate = agent.parameters['event_date'];
         let institution = agent.parameters['event_institution'];
         let location_info = findCity(agent.parameters['event_city']);
-        let city = location_info["city"]
-        let zone = location_info["zone"]
-        let country = location_info["country"]
+        let city = location_info["city"];
+        let zone = location_info["zone"];
+        let country = location_info["country"];
         let feedback = agent.parameters['event_feedback'];
         // converting ISO date to `date`
         let date = isoDate.split("T")[0];  
@@ -105,9 +105,9 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
         let isoDate = context.parameters['event_date'];
         let institution = context.parameters['event_institution'];
         let location_info = findCity(context.parameters['event_city']);
-        let city = location_info["city"]
-        let zone = location_info["zone"]
-        let country = location_info["country"]
+        let city = location_info["city"];
+        let zone = location_info["zone"];
+        let country = location_info["country"];
         let feedback = agent.parameters['event_feedback'];
         let feedback = context.parameters['event_feedback'];
         // converting ISO date to `date`
