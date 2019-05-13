@@ -109,14 +109,11 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
 
     function askForConfirmation(agent) {
         let type = agent.parameters['event_type'];
-        let event_day = agent.parameters['event_day'];      
         let count = agent.parameters['event_count'];
         let name = agent.parameters['coordinator_name'];
-        let phone = agent.parameters['coordinator_phone'];
         let isoDateString = agent.parameters['event_date'];
         let institution = agent.parameters['event_institution'];
         let center = findCity(agent.parameters['event_city']);
-        let feedback = agent.parameters['event_feedback'];
         let date = cleanDate(isoDateString);
         console.log(center.city, center.zone, center.country);
         agent.add(`Okay, ${count} attended ${type} on ${date} at ${institution} in ${center.city}, Is this correct ${name}? Please reply with 'yes' or 'no'.`);
@@ -137,6 +134,16 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
         let center = findCity(context.parameters['event_city']);
         let feedback = context.parameters['event_feedback'];
         let date = cleanDate(isoDateString);
+        console.log(agent.requestSource);
+        console.log(agent.originalRequest['payload']['data']);
+        let source = agent.requestSource;
+        let source_data="";
+      	if(source) {
+	        source_data = JSON.stringify(agent.originalRequest['payload']['data']);
+        } else {
+        	source = "Unknown";
+            source_data = "Maybe DialogFlow Console";
+        }
         let eventSummary = {
             "name": name,
           	"phone": phone,
@@ -148,7 +155,9 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
             "city": center.city,
             "zone": center.zone,
             "country": center.country,
-            "feedback": feedback
+            "feedback": feedback,
+            "source": source,
+            "source_data": source_data
         }
         const databaseEntry = eventSummary
         const dialogflowAgentRef = db.collection('event-summary').doc();
@@ -157,7 +166,10 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
             writeToBq(eventSummary);
             return Promise.resolve('Write complete');
         }).then(doc => {
-            agent.add(`Thanks for submitting the information and all the best. Please submit the complete feedback with attendee information (if available, for *public* events) at our Events Portal: events.heartfulness.org`);
+            agent.add(`Thanks for submitting the information and all the best.\
+             \n\nPlease submit the complete feedback with attendee information (if available, for *public* events) at our Events Portal: events.heartfulness.org\
+             \n\nIf you like this app please inform other connect to use the app by sending a *WhatsApp message to +14155238886* with code *join harlequin-tuatara*\
+             \n\nOr if you prefer Telegram, start a chat with @hfn_event_bot to use this app`);
         }).catch(err => {
             console.log(`Error writing to Firestore: ${err}`);
             agent.add(`Looks like we had some problem capturing this information. This could be due to some internal error. Can you please email itsupport@heartfulness.org with the screenshot? Thanks and apologies for the inconvenience.`);
