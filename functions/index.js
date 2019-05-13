@@ -22,7 +22,6 @@ const {WebhookClient} = require('dialogflow-fulfillment');
 const {BigQuery} = require("@google-cloud/bigquery");
 const Fuse = require("fuse.js");
 const Cities = require("hfn-centers");
-//const Cities = require("indian-cities-json");
 
 process.env.DEBUG = 'dialogflow:*'; // enables lib debugging statements
 admin.initializeApp(functions.config().firebase);
@@ -67,30 +66,60 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
     }
 
     function findCity (city) {
-		let options = {
-			keys: ["city"]
-		}
+        // Configure Fuse options to be strict, as we dont want incorrect matches for center names
+        let options = {
+            shouldSort: true,
+            includeScore: true,
+            threshold: 0.2,
+            location: 0,
+            distance: 100,
+            maxPatternLength: 32,
+            minMatchCharLength: 1,
+            keys: [
+              "city",
+            ]
+        };
 		let fuse = new Fuse(Cities.cities, options);
-		let result = fuse.search(city);
-		//return result[0]["name"];
-		return result[0];
+        let result = fuse.search(city);
+        if(result.length > 0) {
+          	console.log(result);
+          	console.log(result[0].item);
+            return(result[0].item);
+        } else {
+            return({"city": city, "zone":"unknown", "country": "unknown"});
+        }
+    }
+  
+    function cleanDate(isoDateString) {
+      // Sometimes Dialogflow sets the year to 2020. Force year to be current year if in the future.
+      let d = new Date();
+      let currentYear = d.getFullYear();  	
+      let isoDate = new Date(isoDateString);
+      if (isoDate.getFullYear() > currentYear) {
+       	isoDate.setFullYear(currentYear);
+      }
+      // If the date is still in the future, set it to today
+      if (isoDate > d) {
+        isoDate = d;
+      }
+      // Extract only the date in yyyy-mm-dd format
+      let dateOnly = isoDate.toISOString().split("T")[0];
+      return(dateOnly);
     }
 
     function askForConfirmation(agent) {
         let type = agent.parameters['event_type'];
+        let event_day = agent.parameters['event_day'];      
         let count = agent.parameters['event_count'];
         let name = agent.parameters['coordinator_name'];
         let phone = agent.parameters['coordinator_phone'];
-        let isoDate = agent.parameters['event_date'];
+        let isoDateString = agent.parameters['event_date'];
         let institution = agent.parameters['event_institution'];
-        let location_info = findCity(agent.parameters['event_city']);
-        let city = location_info["city"];
-        let zone = location_info["zone"];
-        let country = location_info["country"];
+        let center = findCity(agent.parameters['event_city']);
         let feedback = agent.parameters['event_feedback'];
-        // converting ISO date to `date`
-        let date = isoDate.split("T")[0];  
-        agent.add(`Okay, ${count} attended ${type} on ${date} at ${institution} in ${city}, as reported by the awesome coordinator ${name} who can be reached at ${phone}.\n Did I get that right?`);
+        let date = cleanDate(isoDateString);
+        console.log(center.city, center.zone, center.country);
+        agent.add(`Okay, ${count} attended ${type} on ${date} at ${institution} in ${center.city}, Is this correct ${name}? Please reply with 'yes' or 'no'.`);
         return;
 
     }
@@ -99,29 +128,26 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
         // Get parameter from Dialogflow with the string to add to the database
         const context = agent.getContext('eventinfo-followup');
         let type = context.parameters['event_type'];
+        let event_day = context.parameters['event_day'];
         let count = context.parameters['event_count'];
         let name = context.parameters['coordinator_name'];
         let phone = context.parameters['coordinator_phone'];
-        let isoDate = context.parameters['event_date'];
+        let isoDateString = context.parameters['event_date'];
         let institution = context.parameters['event_institution'];
-        let location_info = findCity(context.parameters['event_city']);
-        let city = location_info["city"];
-        let zone = location_info["zone"];
-        let country = location_info["country"];
-        let feedback = agent.parameters['event_feedback'];
+        let center = findCity(context.parameters['event_city']);
         let feedback = context.parameters['event_feedback'];
-        // converting ISO date to `date`
-        let date = isoDate.split("T")[0];
+        let date = cleanDate(isoDateString);
         let eventSummary = {
             "name": name,
           	"phone": phone,
             "type": type,
+            "event_day": event_day,
             "count": count,
             "date": date,
             "institution": institution,
-            "city": city,
-            "zone": zone,
-            "country": country
+            "city": center.city,
+            "zone": center.zone,
+            "country": center.country,
             "feedback": feedback
         }
         const databaseEntry = eventSummary
@@ -134,7 +160,7 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
             agent.add(`Thanks for submitting the information and all the best. Please submit the complete feedback with attendee information (if available, for *public* events) at our Events Portal: events.heartfulness.org`);
         }).catch(err => {
             console.log(`Error writing to Firestore: ${err}`);
-            agent.add(`Failed to write "${databaseEntry}" to the Firestore database.`);
+            agent.add(`Looks like we had some problem capturing this information. This could be due to some internal error. Can you please email itsupport@heartfulness.org with the screenshot? Thanks and apologies for the inconvenience.`);
         });
     }
 
