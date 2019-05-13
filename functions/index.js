@@ -107,6 +107,16 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
       return(dateOnly);
     }
 
+    function welcomeMessage(agent) {
+        agent.add(`Greetings! What Heartfulness event are you reporting on?
+        \nFor example, you can enter Dhyanotsav, U-Connect, AtWork, C-Connect, V-Connect, G-Connect, CME, Youth, Yoga, Temple, Legal, Family, NGO, Brighter Minds, etc. 
+        \nFor general Heartfulness Introductory Events, just enter "Heartfulness". 
+        \nFor *School or S-Connect* events, enter which program: HELP, INSPIRE, HEART or THWC
+        \nIf you don't know just enter 'Other'.`);
+        return;
+
+    }
+
     function askForConfirmation(agent) {
         let type = agent.parameters['event_type'];
         let count = agent.parameters['event_count'];
@@ -178,6 +188,7 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
 
     // Run the proper function handler based on the matched Dialogflow intent name
     let intents = new Map();
+    intents.set('Default Welcome Intent', welcomeMessage);
     intents.set('event.info', askForConfirmation);
     intents.set('event.info.yes', writeToDb);
     agent.handleRequest(intents);
