@@ -177,8 +177,9 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
             return Promise.resolve('Write complete');
         }).then(doc => {
             agent.add(`Thanks for submitting the information and all the best.\
-             \n\nPlease submit the complete feedback with attendee information (if available, for *public* events) at our Events Portal: events.heartfulness.org\
-             \n\nIf you like this app, please inform other coordinators to use the app by sending a WhatsApp message to +14155238886 with code:\
+             \n\nPlease submit the complete feedback with attendee information (if available) at our Events Portal: events.heartfulness.org\
+             \n\nYou can view the latest reports on Heartfulness Connect activities here: https://tinyurl.com/hfn-connect-report
+             \n\nIf you like this app, please inform other coordinators to use the app by sending the following WhatsApp message to +14155238886:\
 			 \njoin harlequin-tuatara\
              \n\nOr if you prefer Telegram, start a chat with @hfn_event_bot to use this app`);
         }).catch(err => {
