@@ -109,8 +109,8 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
 
     function welcomeMessage(agent) {
         agent.add(`Greetings! What Heartfulness event are you reporting on?
-        \nFor example, you can enter Dhyanotsav, U-Connect, AtWork, C-Connect, V-Connect, G-Connect, CME, Youth, Yoga, Temple, Legal, Family, NGO, Brighter Minds, etc. 
-        \nFor general Heartfulness Introductory Events, just enter "Heartfulness". 
+        \nFor example, you can enter Dhyanotsav, U-Connect, AtWork, C-Connect, V-Connect, G-Connect, Kaushalam, CME, Youth, Yoga, Temple, Legal, Family, NGO, Brighter Minds, etc. 
+        \nFor general Heartfulness Introductory Events, enter "Heartfulness". 
         \nFor *School or S-Connect* events, enter which program: HELP, INSPIRE, HEART or THWC
         \nIf you don't know just enter 'Other'.`);
         return;
@@ -177,8 +177,10 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
             return Promise.resolve('Write complete');
         }).then(doc => {
             agent.add(`Thanks for submitting the information and all the best.\
-             \n\nPlease submit the complete feedback with attendee information (if available, for *public* events) at our Events Portal: events.heartfulness.org\
-             \n\nIf you like this app please inform other connect to use the app by sending a *WhatsApp message to +14155238886* with code *join harlequin-tuatara*\
+             \n\nPlease submit the complete feedback with attendee information (if available) at our Events Portal: events.heartfulness.org\
+             \n\nYou can view the latest reports on Heartfulness Connect activities here: https://tinyurl.com/hfn-connect-report
+             \n\nIf you like this app, please inform other coordinators to use the app by sending the following WhatsApp message to +14155238886:\
+			 \njoin harlequin-tuatara\
              \n\nOr if you prefer Telegram, start a chat with @hfn_event_bot to use this app`);
         }).catch(err => {
             console.log(`Error writing to Firestore: ${err}`);
