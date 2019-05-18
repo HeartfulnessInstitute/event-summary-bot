@@ -107,6 +107,48 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
       return(dateOnly);
     }
 
+    function connectContact(event_type){
+        let connectContacts = {};
+		
+      	if (event_type) {
+          connectContacts["ROCF"] = "info@rocf.org";
+          connectContacts["S-Connect-HELP"] = "sconnect@heartfulness.org";
+          connectContacts["u-connect"] = "uconnect@heartfulness.org";
+          connectContacts["Family-Connect"] = "fconnect@heartfulness.org";
+          connectContacts["g-connect"] = "gconnect@heartfulness.org";
+          connectContacts["Divya-Janani"] = "divyajanani@heartfulness.org";
+          connectContacts["Research"] = "research@heartfulness.org";
+          connectContacts["Heartfulness-green"] = "green@heartfulness.org";
+          connectContacts["v-connect"] = "vconnect@heartfulness.org";
+          connectContacts["L-Connect"] = "lconnect@heartfulness.org";
+          connectContacts["NGO-Connect"] = "ngoconnect@heartfulness.org";
+          connectContacts["Yoga"] = "yoga@heartfulness.org";
+          connectContacts["glow-pearl"] = "webinars@heartfulness.org";
+          connectContacts["Brighter-Minds"] = "brighterminds@heartfulness.org";
+          connectContacts["at-work"] = "atwork@heartfulness.org";
+          connectContacts["S-Connect-HEART"] = "sconnect@heartfulness.org";
+          connectContacts["dhyanotsav"] = "dhyanotsav@heartfulness.org";
+          connectContacts["s-connect"] = "sconnect@heartfulness.org";
+          connectContacts["S-Connect-THWC"] = "sconnect@heartfulness.org";
+          connectContacts["books-and-more"] = "booksandmore@heartfulness.org";
+          connectContacts["S-Connect-INSPIRE"] = "sconnect@heartfulness.org";
+          connectContacts["Kaushalam"] = "kaushalam@heartfulness.org";
+          
+		  // Not supported currently
+          //connectContacts["Religious Institutions"] = "it@heartfulness.org";
+          //connectContacts["Heartfulness Introduction"] = "it@heartfulness.org";
+          //connectContacts["Other"] = "it@heartfulness.org";
+          //connectContacts["Youth"] = "it@heartfulness.org";
+          //connectContacts["group-meditation"] = "it@heartfulness.org";
+          //connectContacts["Indian Diaspora"] = "it@heartfulness.org";
+
+          if(event_type in connectContacts) {
+              return(connectContacts[event_type]);
+          }
+        }
+        return("");
+    }
+
     function welcomeMessage(agent) {
         agent.add(`Greetings! What Heartfulness event are you reporting on?
         \nFor example, you can enter Dhyanotsav, U-Connect, AtWork, C-Connect, V-Connect, G-Connect, Kaushalam, CME, Youth, Yoga, Temple, Legal, Family, NGO, Brighter Minds, etc. 
@@ -176,12 +218,19 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
             writeToBq(eventSummary);
             return Promise.resolve('Write complete');
         }).then(doc => {
-            agent.add(`Thanks for submitting the information and all the best.\
-             \n\nPlease submit the complete feedback with attendee information (if available) at our Events Portal: events.heartfulness.org\
-             \n\nYou can view the latest reports on Heartfulness Connect activities here: https://tinyurl.com/hfn-connect-report
-             \n\nIf you like this app, please inform other coordinators to use the app by sending the following WhatsApp message to +14155238886:\
-			 \njoin harlequin-tuatara\
-             \n\nOr if you prefer Telegram, start a chat with @hfn_event_bot to use this app`);
+            let finalResponse = "Thanks for submitting the information and all the best.\n\n";
+            finalResponse += "Please submit the complete feedback with attendee information (if available) at our Events Portal: events.heartfulness.org\n\n";
+            finalResponse += "You can view the latest reports on Heartfulness Connect activities here: https://tinyurl.com/hfn-connect-report\n\n";
+            finalResponse += "If you like this app, please inform other coordinators to use the app by sending the following WhatsApp message to +14155238886:\
+                                \njoin harlequin-tuatara\n\n";
+            finalResponse += "Or if you prefer Telegram, start a chat with @hfn_event_bot to use this app\n\n";
+            if(connectContact(type) != "") {
+                finalResponse += "Please contact " + connectContact(type) + " for any questions or to send photos of the event.\n\n";
+            }
+            finalResponse += "For any help or feedback on this application, please email it@heartfulness.org."
+
+            agent.add(finalResponse);
+            
         }).catch(err => {
             console.log(`Error writing to Firestore: ${err}`);
             agent.add(`Looks like we had some problem capturing this information. This could be due to some internal error. Can you please email itsupport@heartfulness.org with the screenshot? Thanks and apologies for the inconvenience.`);
