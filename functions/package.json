@@ -20,7 +20,8 @@
     "firebase-functions": "^2.0.2",
     "@google-cloud/bigquery": "^2.0.6",
     "fuse.js": "^3.4.4",
-    "hfn-centers": "^2.0.1"
+    "hfn-centers": "^2.0.1",
+    "uuid":"^3.3.2"
   }
 }
 

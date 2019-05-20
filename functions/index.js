@@ -22,6 +22,7 @@ const {WebhookClient} = require('dialogflow-fulfillment');
 const {BigQuery} = require("@google-cloud/bigquery");
 const Fuse = require("fuse.js");
 const Cities = require("hfn-centers");
+const uuidv4 = require('uuid/v4');
 
 process.env.DEBUG = 'dialogflow:*'; // enables lib debugging statements
 admin.initializeApp(functions.config().firebase);
@@ -196,7 +197,9 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
         	source = "Unknown";
             source_data = "Maybe DialogFlow Console";
         }
+        let evuuid = uuidv4();
         let eventSummary = {
+            "id": evuuid,
             "name": name,
           	"phone": phone,
             "type": type,
@@ -220,7 +223,7 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
         }).then(doc => {
             let finalResponse = "Thanks for submitting the information and all the best.\n\n";
             finalResponse += "Please submit the complete feedback with attendee information (if available) at our Events Portal: events.heartfulness.org\n\n";
-            finalResponse += "You can view the latest reports on Heartfulness Connect activities here: https://tinyurl.com/hfn-connect-report\n\n";
+            finalResponse += "You can view the latest reports on Heartfulness Connect activities here: http://bit.ly/hfn-connect-report\n\n";
             finalResponse += "If you like this app, please inform other coordinators to use the app by sending the following WhatsApp message to +14155238886:\
                                 \njoin harlequin-tuatara\n\n";
             finalResponse += "Or if you prefer Telegram, start a chat with @hfn_event_bot to use this app\n\n";
