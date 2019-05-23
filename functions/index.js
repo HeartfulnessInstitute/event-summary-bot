@@ -158,8 +158,6 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
         \nFor School or S-Connect events, enter which program: HELP, INSPIRE, HEART or THWC
         \nFor Group Meditations, simply enter "Satsangh" or "Group Meditation"
         \nIf you don't know just enter 'Other'.`);
-        return;
-
     }
 
     function askForConfirmation(agent) {
@@ -181,20 +179,16 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
             }
         }
 
-        let allParametersReady = false;
-      	// Check if we have all required params
-        if (type && count && name && phone && isoDateString && institution &&  city && feedback) {
-	        allParametersReady = true;
-            console.log("Got all required params");
+        const allParamsReady = () => {
+            return (type && count && name && phone && isoDateString && institution &&  city && feedback)
         }
 
-        if(allParametersReady){
+        if(allParamsReady()){
             let center = findCity(city);
             let date = cleanDate(isoDateString);
             console.log(center.city, center.zone, center.country);
             agent.add(`Okay, ${count} attended ${type} on ${date} at ${institution} in ${center.city}, Is this correct ${name}? Please reply with 'yes' or 'no'.`);
         }
-        return;
     }
   
     function writeToDb (agent) {
