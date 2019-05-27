@@ -169,6 +169,7 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
         let isoDateString = agent.parameters['event_date'];
         let institution = agent.parameters['event_institution'];
         let city = agent.parameters['event_city'];
+        let trainer_id = agent.parameters['trainer_id'];
         let feedback = agent.parameters['event_feedback'];
 
 		if(type) {
@@ -176,14 +177,28 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
 	      	if (type != "group-meditation" && !event_day){
               	console.log("Need which day");
 				agent.add(`Is is day-1, day-2 or day-3 of the event? If it is a one day event just enter \"one day event\". For a follow up event, enter \"Follow Up\"`);			
+            } else if(!count){
+				agent.add(`How many attended the event?`);			
+            } else if (!name) {
+				agent.add(`Thanks for coordinating this event. Please enter your name.`);			
+            } else if (!phone) {
+				agent.add(`Please enter your phone number.`);			
+            } else if (!isoDateString) {
+				agent.add(`When was the event held? (\"today\", \"yesterday\", \"3 days ago\" or just enter a date as dd-mmm-yyyy, example \"30-apr-2019\")`);			
+            } else if (!institution) {
+				agent.add(`Which organization or institution was the event held (e.g., school or company name)? For group meditations and Satsanghs, please enter the subcenter name.`);			
+            } else if (!city) {
+				agent.add(`Which City/Center was this event held?`);			
+            } else if (!trainer_id) {
+				agent.add(`If available, please enter the preceptor/trainer ID associated with this event. If not, simply enter "skip" or "none".`);			
+            } else if (!feedback) {
+				agent.add(`Please share your feedback or comments, if any. Or simply enter 'None' to continue.`);			
             }
         }
 
-        const allParamsReady = () => {
-            return (type && count && name && phone && isoDateString && institution &&  city && feedback)
-        }
+        const allParamsReady = (type && count && name && phone && isoDateString && institution &&  city && trainer_id && feedback);
 
-        if(allParamsReady()){
+        if(allParamsReady){
             let center = findCity(city);
             let date = cleanDate(isoDateString);
             console.log(center.city, center.zone, center.country);
@@ -202,6 +217,7 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
         let isoDateString = context.parameters['event_date'];
         let institution = context.parameters['event_institution'];
         let center = findCity(context.parameters['event_city']);
+        let trainer_id = context.parameters['trainer_id'];      
         let feedback = context.parameters['event_feedback'];
         let date = cleanDate(isoDateString);
         console.log(agent.requestSource);
@@ -215,6 +231,9 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
             source_data = "Maybe DialogFlow Console";
         }
         let evuuid = uuidv4();
+        if (type === "group-meditation") {
+        	event_day = "1-day-event";
+        }
         let eventSummary = {
             "id": evuuid,
             "name": name,
@@ -227,6 +246,7 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
             "city": center.city,
             "zone": center.zone,
             "country": center.country,
+            "trainer_id": trainer_id,
             "feedback": feedback,
             "source": source,
             "source_data": source_data
@@ -264,3 +284,4 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
     intents.set('event.info.yes', writeToDb);
     agent.handleRequest(intents);
 });
+
