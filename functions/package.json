@@ -15,12 +15,11 @@
   "dependencies": {
     "actions-on-google": "^2.2.0",
     "dialogflow": "^0.6.0",
-    "dialogflow-fulfillment": "^0.5.0",
+    "dialogflow-fulfillment": "^0.6.1",
     "firebase-admin": "^5.13.1",
     "firebase-functions": "^2.0.2",
     "@google-cloud/bigquery": "^2.0.6",
-    "fuse.js": "^3.4.4",
-    "hfn-centers": "^2.0.1",
+    "hfn-centers": "^2.0.8",
     "uuid":"^3.3.2"
   }
 }

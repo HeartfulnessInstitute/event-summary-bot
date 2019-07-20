@@ -20,7 +20,6 @@ const admin = require('firebase-admin');
 const functions = require('firebase-functions');
 const {WebhookClient} = require('dialogflow-fulfillment');
 const {BigQuery} = require("@google-cloud/bigquery");
-const Fuse = require("fuse.js");
 const Cities = require("hfn-centers");
 const uuidv4 = require('uuid/v4');
 
@@ -65,31 +64,6 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
             console.error(`table.insert: ${JSON.stringify(err)}`);
             return err;
         });
-    }
-
-    function findCity (city) {
-        // Configure Fuse options to be strict, as we dont want incorrect matches for center names
-        let options = {
-            shouldSort: true,
-            includeScore: true,
-            threshold: 0.2,
-            location: 0,
-            distance: 100,
-            maxPatternLength: 32,
-            minMatchCharLength: 1,
-            keys: [
-              "city",
-            ]
-        };
-		let fuse = new Fuse(Cities.cities, options);
-        let result = fuse.search(city);
-        if(result.length > 0) {
-          	console.log(result);
-          	console.log(result[0].item);
-            return(result[0].item);
-        } else {
-            return({"city": city, "zone":"unknown", "country": "unknown"});
-        }
     }
   
     function cleanDate(isoDateString) {
@@ -156,6 +130,7 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
         \nFor example, you can enter Dhyanotsav, U-Connect, AtWork, C-Connect, V-Connect, G-Connect, CME, Youth, Yoga, Temple, Legal, Family, NGO, Brighter Minds, etc. 
         \nFor general Heartfulness Introductory Events, just enter "Heartfulness". 
         \nFor School or S-Connect events, enter which program: HELP, INSPIRE, HEART or THWC
+        \nFor International Yoga Day reporting, enter "IYD" or "Yoga"
         \nFor Group Meditations, simply enter "Satsangh" or "Group Meditation"
         \nIf you don't know just enter 'Other'.`);
     }
@@ -165,20 +140,39 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
         let event_day = agent.parameters['event_day'];
         let count = agent.parameters['event_count'];
         let name = agent.parameters['coordinator_name'];
+        // name is sys.person now {'name': 'Krishna S'}
+        name = name.name;
         let phone = agent.parameters['coordinator_phone'];
         let isoDateString = agent.parameters['event_date'];
         let institution = agent.parameters['event_institution'];
         let city = agent.parameters['event_city'];
         let trainer_id = agent.parameters['trainer_id'];
         let feedback = agent.parameters['event_feedback'];
-
+        
+        if (Array.isArray(type) && (type.length > 0)) {
+            type = type[0];
+        }
+        console.log(type);
 		if(type) {
-          	console.log(type, event_day);
+            console.log(type, event_day);
+            // We skip asking for event_day if the event type is group-meditation
+            // Here we need to handle setting the right parameter context as well.  
 	      	if (type != "group-meditation" && !event_day){
-              	console.log("Need which day");
-				agent.add(`Is is day-1, day-2 or day-3 of the event? If it is a one day event just enter \"one day event\". For a follow up event, enter \"Follow Up\"`);			
+                console.log("Need which day");
+                const ctx = {
+                "lifespan": 12,
+                "name": "event_info_dialog_params_event_day",
+                "parameters":  {
+                    'event_type': type,
+                    }
+                };
+                agent.context.set(ctx);
+                agent.context.delete('event_info_dialog_params_event_count');
+                agent.add(`Is is day-1, day-2 or day-3 of the event? Please enter \"day-1\", "day-2\", or \"day-3\". Please note that if it's a multi-day event, you will have to report each day separately.
+                    \nIf it is a one day event just enter \"one day event\". 
+                    \nFor a follow up event, enter \"Follow Up\"`);			
             } else if(!count){
-				agent.add(`How many attended the event?`);			
+				agent.add(`How many attended the event? Please enter attendance only for the day you are reporting on. For example, "25" or "2000"`);			
             } else if (!name) {
 				agent.add(`Thanks for coordinating this event. Please enter your name.`);			
             } else if (!phone) {
@@ -186,7 +180,7 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
             } else if (!isoDateString) {
 				agent.add(`When was the event held? (\"today\", \"yesterday\", \"3 days ago\" or just enter a date as dd-mmm-yyyy, example \"30-apr-2019\")`);			
             } else if (!institution) {
-				agent.add(`Which organization or institution was the event held (e.g., school or company name)? For group meditations and Satsanghs, please enter the subcenter name.`);			
+				agent.add(`Which organization or institution was the event held (e.g., school or company name)? For V-Connect, enter the name of the village. For group meditations and Satsanghs, please enter the subcenter name.`);			
             } else if (!city) {
 				agent.add(`Which City/Center was this event held?`);			
             } else if (!trainer_id) {
@@ -199,7 +193,7 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
         const allParamsReady = (type && count && name && phone && isoDateString && institution &&  city && trainer_id && feedback);
 
         if(allParamsReady){
-            let center = findCity(city);
+            let center = Cities.findCity(city);
             let date = cleanDate(isoDateString);
             console.log(center.city, center.zone, center.country);
             agent.add(`Okay, ${count} attended ${type} on ${date} at ${institution} in ${center.city}, Is this correct ${name}? Please reply with 'yes' or 'no'.`);
@@ -208,15 +202,21 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
   
     function writeToDb (agent) {
         // Get parameter from Dialogflow with the string to add to the database
-        const context = agent.getContext('eventinfo-followup');
+        const context = agent.context.get('eventinfo-followup');
         let type = context.parameters['event_type'];
+        if (Array.isArray(type) && (type.length > 0)) {
+            type = type[0];
+        }
+        console.log(type);        
         let event_day = context.parameters['event_day'];
         let count = context.parameters['event_count'];
         let name = context.parameters['coordinator_name'];
+        // name is sys.person now {'name': 'Krishna S'}
+        name = name.name;
         let phone = context.parameters['coordinator_phone'];
         let isoDateString = context.parameters['event_date'];
         let institution = context.parameters['event_institution'];
-        let center = findCity(context.parameters['event_city']);
+        let center = Cities.findCity(context.parameters['event_city']);
         let trainer_id = context.parameters['trainer_id'];      
         let feedback = context.parameters['event_feedback'];
         let date = cleanDate(isoDateString);
@@ -251,6 +251,7 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
             "source": source,
             "source_data": source_data
         }
+        console.log(eventSummary);
         const databaseEntry = eventSummary
         const dialogflowAgentRef = db.collection('event-summary').doc();
         return db.runTransaction(t => {
@@ -267,6 +268,9 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
             if(connectContact(type) != "") {
                 finalResponse += "Please contact " + connectContact(type) + " for any questions or to send photos of the event.\n\n";
             }
+            
+            finalResponse += "Please email high resolution photos to photos@heartfulness.org or upload them to https://drive.google.com/drive/folders/10VMvrv4tZMm1MjqoQ6dtqZWNputWCP-p.\n\n"
+            
             finalResponse += "For any help or feedback on this application, please email it@heartfulness.org."
 
             agent.add(finalResponse);
