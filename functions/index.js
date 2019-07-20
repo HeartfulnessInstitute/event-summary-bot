@@ -140,6 +140,8 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
         let event_day = agent.parameters['event_day'];
         let count = agent.parameters['event_count'];
         let name = agent.parameters['coordinator_name'];
+        // name is sys.person now {'name': 'Krishna S'}
+        name = name.name;
         let phone = agent.parameters['coordinator_phone'];
         let isoDateString = agent.parameters['event_date'];
         let institution = agent.parameters['event_institution'];
@@ -178,7 +180,7 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
             } else if (!isoDateString) {
 				agent.add(`When was the event held? (\"today\", \"yesterday\", \"3 days ago\" or just enter a date as dd-mmm-yyyy, example \"30-apr-2019\")`);			
             } else if (!institution) {
-				agent.add(`Which organization or institution was the event held (e.g., school or company name)? For group meditations and Satsanghs, please enter the subcenter name.`);			
+				agent.add(`Which organization or institution was the event held (e.g., school or company name)? For V-Connect, enter the name of the village. For group meditations and Satsanghs, please enter the subcenter name.`);			
             } else if (!city) {
 				agent.add(`Which City/Center was this event held?`);			
             } else if (!trainer_id) {
@@ -209,6 +211,8 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
         let event_day = context.parameters['event_day'];
         let count = context.parameters['event_count'];
         let name = context.parameters['coordinator_name'];
+        // name is sys.person now {'name': 'Krishna S'}
+        name = name.name;
         let phone = context.parameters['coordinator_phone'];
         let isoDateString = context.parameters['event_date'];
         let institution = context.parameters['event_institution'];
