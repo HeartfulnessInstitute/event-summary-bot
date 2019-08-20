@@ -125,14 +125,20 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
         return("");
     }
 
-    function welcomeMessage(agent) {
-        agent.add(`Greetings! What Heartfulness event are you reporting on?
-        \nFor example, you can enter Dhyanotsav, U-Connect, AtWork, C-Connect, V-Connect, G-Connect, CME, Youth, Yoga, Temple, Legal, Family, NGO, Brighter Minds, etc. 
+
+   function welcomeMessage(agent) {
+        agent.add(`Greetings!
+		\nYou can also upload event data with Google forms here: https://bit.ly/hfn-event-summary-submit
+		\nWhat Heartfulness event are you reporting on?
+        \nFor example, you can enter Dhyanotsav, AtWork, C-Connect, V-Connect, G-Connect, CME, Youth, Yoga, Temple, Legal, Family, NGO, Brighter Minds, etc. 
         \nFor general Heartfulness Introductory Events, just enter "Heartfulness". 
         \nFor School or S-Connect events, enter which program: HELP, INSPIRE, HEART or THWC
-        \nFor International Yoga Day reporting, enter "IYD" or "Yoga"
         \nFor Group Meditations, simply enter "Satsangh" or "Group Meditation"
         \nIf you don't know just enter 'Other'.`);
+    } 
+  
+    function endSession(agent) {
+    	let event = agent.setFollowupEvent('Welcome');
     }
 
     function askForConfirmation(agent) {
@@ -141,7 +147,7 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
         let count = agent.parameters['event_count'];
         let name = agent.parameters['coordinator_name'];
         // name is sys.person now {'name': 'Krishna S'}
-        name = name.name;
+        // name = name.name;
         let phone = agent.parameters['coordinator_phone'];
         let isoDateString = agent.parameters['event_date'];
         let institution = agent.parameters['event_institution'];
@@ -155,6 +161,19 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
         console.log(type);
 		if(type) {
             console.log(type, event_day);
+            if(type == 'u-connect') {
+                console.log("U-Connect!!");
+                const ctx = {
+                "lifespan": 2,
+                "name": "end_session",
+                };
+                agent.context.set(ctx);
+                agent.context.delete('event_info_dialog_params_event_count');
+                agent.context.delete('event_info_dialog_context');
+                agent.context.delete('eventinfo_ready');              
+                agent.add(`nFor U-Connect (Heartful Campus) events, please continue with uploading event data with Google forms here: https://bit.ly/hfn-event-summary-submit`);		              
+                //let event = agent.setFollowupEvent('Welcome');
+            } else
             // We skip asking for event_day if the event type is group-meditation
             // Here we need to handle setting the right parameter context as well.  
 	      	if (type != "group-meditation" && !event_day){
@@ -166,7 +185,7 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
                     'event_type': type,
                     }
                 };
-                agent.context.set(ctx);
+                agent.context.set(ctx);              
                 agent.context.delete('event_info_dialog_params_event_count');
                 agent.add(`Is is day-1, day-2 or day-3 of the event? Please enter \"day-1\", "day-2\", or \"day-3\". Please note that if it's a multi-day event, you will have to report each day separately.
                     \nIf it is a one day event just enter \"one day event\". 
@@ -180,7 +199,9 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
             } else if (!isoDateString) {
 				agent.add(`When was the event held? (\"today\", \"yesterday\", \"3 days ago\" or just enter a date as dd-mmm-yyyy, example \"30-apr-2019\")`);			
             } else if (!institution) {
-				agent.add(`Which organization or institution was the event held (e.g., school or company name)? For V-Connect, enter the name of the village. For group meditations and Satsanghs, please enter the subcenter name.`);			
+				agent.add(`Which organization or institution was the event held (e.g., school or company name)?
+						   \nFor V-Connect, please enter the village name.
+                           \nFor group meditations and Satsanghs, please enter the sub-center or location name.`);		
             } else if (!city) {
 				agent.add(`Which City/Center was this event held?`);			
             } else if (!trainer_id) {
@@ -212,7 +233,7 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
         let count = context.parameters['event_count'];
         let name = context.parameters['coordinator_name'];
         // name is sys.person now {'name': 'Krishna S'}
-        name = name.name;
+        // name = name.name;
         let phone = context.parameters['coordinator_phone'];
         let isoDateString = context.parameters['event_date'];
         let institution = context.parameters['event_institution'];
@@ -234,18 +255,34 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
         if (type === "group-meditation") {
         	event_day = "1-day-event";
         }
+       
+        let s_connect_type = ''; 
+      	if(type === "S-Connect-HELP") {
+        	s_connect_type = 'HELP';
+            type = "s-connect";
+        } else if (type === "S-Connect-HEART") {
+        	s_connect_type = 'HEART';          
+            type = "s-connect";
+        } else if (type === "S-Connect-INSPIRE") {
+        	s_connect_type = 'INSPIRE';          
+            type = "s-connect";
+        } else if (type === "S-Connect-THWC") {
+        	s_connect_type = 'THWC';          
+            type = "s-connect";
+        }
         let eventSummary = {
             "id": evuuid,
             "name": name,
           	"phone": phone,
             "type": type,
+            "s_connect_type": s_connect_type,
             "event_day": event_day,
             "count": count,
             "date": date,
             "institution": institution,
-            "city": center.city,
-            "zone": center.zone,
-            "country": center.country,
+            "city": center.city.trim(),
+            "zone": center.zone.trim(),
+            "country": center.country.trim(),
             "trainer_id": trainer_id,
             "feedback": feedback,
             "source": source,
@@ -286,6 +323,7 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
     intents.set('Default Welcome Intent', welcomeMessage);
     intents.set('event.info', askForConfirmation);
     intents.set('event.info.yes', writeToDb);
+    intents.set('end_session', endSession);
     agent.handleRequest(intents);
 });
 

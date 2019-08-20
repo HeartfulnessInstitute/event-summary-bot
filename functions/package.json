@@ -16,10 +16,10 @@
     "actions-on-google": "^2.2.0",
     "dialogflow": "^0.6.0",
     "dialogflow-fulfillment": "^0.6.1",
-    "firebase-admin": "^5.13.1",
+    "firebase-admin": "^6.0.0",
     "firebase-functions": "^2.0.2",
     "@google-cloud/bigquery": "^2.0.6",
-    "hfn-centers": "^2.0.8",
+    "hfn-centers": "^2.0.11",
     "uuid":"^3.3.2"
   }
 }
