@@ -152,6 +152,7 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
         let isoDateString = agent.parameters['event_date'];
         let institution = agent.parameters['event_institution'];
         let city = agent.parameters['event_city'];
+        let country = agent.parameters['country'];
         let trainer_id = agent.parameters['trainer_id'];
         let feedback = agent.parameters['event_feedback'];
         
@@ -203,7 +204,9 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
 						   \nFor V-Connect, please enter the village name.
                            \nFor group meditations and Satsanghs, please enter the sub-center or location name.`);		
             } else if (!city) {
-				agent.add(`Which City/Center was this event held?`);			
+				agent.add(`Which City/Center was this event held (e.g., Hyderabad, Chennai, etc)?`);			
+            } else if (!country) {
+				agent.add(`Which Country was this event held (e.g., India, USA etc)?`);			
             } else if (!trainer_id) {
 				agent.add(`If available, please enter the preceptor/trainer ID associated with this event. If not, simply enter "skip" or "none".`);			
             } else if (!feedback) {
@@ -211,7 +214,7 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
             }
         }
 
-        const allParamsReady = (type && count && name && phone && isoDateString && institution &&  city && trainer_id && feedback);
+        const allParamsReady = (type && count && name && phone && isoDateString && institution &&  city && country && trainer_id && feedback);
 
         if(allParamsReady){
             let center = Cities.findCity(city);
@@ -239,6 +242,7 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
         let institution = context.parameters['event_institution'];
         let center = Cities.findCity(context.parameters['event_city']);
         let trainer_id = context.parameters['trainer_id'];      
+        let country = Cities.findCountry(context.parameters['country']);      
         let feedback = context.parameters['event_feedback'];
         let date = cleanDate(isoDateString);
         console.log(agent.requestSource);
@@ -282,7 +286,7 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
             "institution": institution,
             "city": center.city.trim(),
             "zone": center.zone.trim(),
-            "country": center.country.trim(),
+            "country": country.trim(),
             "trainer_id": trainer_id,
             "feedback": feedback,
             "source": source,
